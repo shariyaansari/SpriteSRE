@@ -32,6 +32,34 @@ Milestones:
 - 1.4 Repository contents: read workflows, package.json, requirements.txt, Dockerfile, README
 - 1.5 Actions surface: list workflows, runs, jobs; download logs
 
+phase One completed and now looks like this : 
+```
+                   GitHubClient
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+        ▼                ▼                ▼
+   get_repository()  get_contents()  get_workflows()
+        │                │                │
+        └───────┬────────┴────────┬───────┘
+                ▼
+            _request()
+                │
+                ▼
+        GitHub REST API
+                │
+                ▼
+        JSON Response
+                │
+     ┌──────────┼──────────┐
+     ▼          ▼          ▼
+_map_repository() _map_file() _map_workflow()
+     │          │          │
+     ▼          ▼          ▼
+ Repository     File     Workflow 
+
+```
+
 ## Phase 2 — Incident Detection
 Objective: Detect and surface failing workflows automatically.
 

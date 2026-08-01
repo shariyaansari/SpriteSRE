@@ -1,27 +1,18 @@
-# GitHubClient
-# │
-# ├── base_url
-# ├── token
-# ├── headers
-# ├── AsyncClient
-# │
-# ├── get_repository()
-# ├── get_workflows()
-# ├── get_workflow_runs()
-# ├── get_jobs()
-# ├── get_logs()
-# └── create_pull_request()
+# GitHubClient sdk 
 
 import httpx
-from .config import github_api_url, github_token
+from config import settings
 from schemas.repository import Repository
+from schemas.file import File
+
+
 
 class GitHubClient:
     """An asynchronous GitHub client utilizing centralized configuration."""
     
     def __init__(self):
-        self.github_api_url = github_api_url.rstrip("/")
-        self.github_token = github_token
+        self.github_api_url = settings.github_api_url.rstrip("/")
+        self.github_token = settings.github_token
 
         # * Set default headers for GitHub API requests
         self.default_headers = {
@@ -31,6 +22,8 @@ class GitHubClient:
         if self.github_token:
             self.default_headers["Authorization"] = f"Bearer {self.github_token}"
 
+        print(f"GitHub API URL: {self.github_api_url}")
+        
         # initialize the single AsyncClient instance
         self.client = httpx.AsyncClient(
             base_url=self.github_api_url, headers=self.default_headers

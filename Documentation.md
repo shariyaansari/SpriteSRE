@@ -28,4 +28,4 @@
 - Language
 - Private 
 - Updated at and Pushed at 
-(because later SpriteSRE may display repository health.)
+(because later SpriteSRE may display repository health.
