@@ -107,7 +107,6 @@ class GitHubClient:
         return self.__map_repository(data)
 
     
-    # get_file()
     async def get_contents(self, owner: str, repo: str, path: str) -> File:
         """
         Get the contents of a file in a repository.
