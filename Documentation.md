@@ -28,4 +28,51 @@
 - Language
 - Private 
 - Updated at and Pushed at 
-(because later SpriteSRE may display repository health.
+(because later SpriteSRE may display repository health.)
+
+### Made the GithubClient sdk
+that has 
+- __map_repository() -> private method
+- __map_repository_file() -> private method
+- __map_workflow() -> private method
+- __request() -> private method
+- get_repository() -> public method for endpoint
+- get_contents() -> public method for endpoint
+- get_workflows() -> public method for endpoint
+- get_logs() -> public method for endpoint
+
+##### But rn we ar polling -> making requests for every single thing, so without webhooks it's like I ask my friend every minute 
+```
+"Did the CI fail?"
+
+"No."
+
+"Did the CI fail?"
+
+"No."
+
+"Did the CI fail?"
+
+"No."
+```
+
+This is called Polling.
+It's wasteful.
+
+### WITH WEBHOOKS 
+Your friend says :
+    "Don't keep asking me. If something happens, I'll call you."
+
+```
+GitHub
+   │
+Something happens
+   │
+   ▼
+POST Request
+   │
+   ▼
+SpriteSRE
+```
+No polling.
+GitHub pushes the event.
