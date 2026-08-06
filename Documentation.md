@@ -76,3 +76,65 @@ SpriteSRE
 ```
 No polling.
 GitHub pushes the event.
+
+
+### Phase 2 Architechture 
+Github -> Workflow fails -> Github webhooks -> 200 POST/webhooks/github -> verify Sign -> Parse Payload -> create Incident -> Store In memory -> Return 200 OK 
+
+### What actually happens but ?
+When a worflow fails, Github sends an HTTP request. 
+
+Literally, 
+```
+POST /webhooks/github  
+```
+
+Body: 
+``` 
+{
+  "action":"completed",
+  "workflow_run":{
+      ...
+  }
+}
+```
+### But how do we know someone else didn't send it ?
+#### because if I know anyones url I can send them anything, suppose I send this 
+``` 
+{
+   "workflow_run":{
+      "conclusion":"failure"
+   }
+}
+```
+Now SpriteSRE thinks my CI failed, but in actual it didn't. 
+
+
+### Github solves this using HMAC (Hashing Technique)
+So here, Github computes -> Payload + Secret -> SHA256 HMC -> Signature. 
+
+Then it returns -> Payload + Signature (recieved by backend)
+It recomputes -> payload + Same Secret -> SHA256 HMAC 
+
+If MY sign == Github sign then payload authentic otherwise 403 forbidden 
+
+So NOW the architechture becomes -> 
+``` 
+
+                GitHub
+                   │
+                   ▼
+      POST /webhooks/github
+                   │
+                   ▼
+      Signature Verification
+                   │
+         Valid? ───┴──── Invalid
+           │                │
+           ▼                ▼
+     Parse Payload       403 Forbidden
+           │
+           ▼
+    Create Incident
+
+```
