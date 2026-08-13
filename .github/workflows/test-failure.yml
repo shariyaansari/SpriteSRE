@@ -1,0 +1,17 @@
+name: Broken CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Try to run a fake command
+      run: this-command-will-fail-and-break-the-build
+      
