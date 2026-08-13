@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from httpx import HTTPStatusError
-from github.client import GitHubClient
+from backend.github.client import GitHubClient
 
 
 router = APIRouter(

@@ -3,13 +3,18 @@
 # But inside an async def, it blocks the event loop while waiting for the network.
 import httpx
 from fastapi import FastAPI
-from config import Settings
+from backend.config import Settings
 from functools import lru_cache
-from routes.github import router as github_router
-
+from backend.routes.github import router as github_router
+from backend.webhooks.router import router as webhook_router
 
 app = FastAPI()
+
+# load settings from config.py
+# settings = Settings()
+
 app.include_router(github_router)
+app.include_router(webhook_router)
 
 @lru_cache()
 

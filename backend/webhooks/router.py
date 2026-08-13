@@ -1,16 +1,42 @@
+# The route's job initially is simply:
 
-# TODO - Receive HTTP requests.
+# Receive the request.
+# Get the raw request body.
+# Get the GitHub headers.
+# Pass them to the verifier.
+# Return an appropriate response.
+from fastapi import APIRouter, Header, Request, status
+
+from backend.config import settings
+from backend.webhooks.verifier import verify_signature
 
 
-@app.route("/webhooks", methods=["POST"])
-def handle_webhook():
-    # TODO - Verify the authenticity of the incoming webhook request.
-    # This will involve checking the signature of the request against a known secret key to ensure that the request is coming from a trusted source.
+router = APIRouter(
+    prefix="/webhooks",
+    tags=["webhooks"],
+)
 
-    # TODO - Parse the incoming webhook request and extract relevant information from it.
-    # This will involve defining a set of rules for parsing different types of webhook requests and extracting the necessary data from them.
 
-    # TODO - Create an incident based on the extracted information.
-    # This will involve using the extracted data to create an incident in the system.
+@router.post("/github", status_code=status.HTTP_200_OK)
+async def handle_github_webhook(
+    request: Request,
+    x_hub_signature_256: str | None = Header(default=None),
+):
+    """
+    Receive and verify GitHub webhook requests.
+    """
 
-    return "Webhook received", 200
+    # 1. Get the ORIGINAL request body.
+    body = await request.body()
+
+    # 2. Verify GitHub's signature.
+    verify_signature(
+        payload_body=body,
+        secret_token=settings.github_webhook_secret,
+        signature_header=x_hub_signature_256,
+    )
+
+    # 3. Signature is valid.
+    return {
+        "message": "Webhook received and verified successfully"
+    }

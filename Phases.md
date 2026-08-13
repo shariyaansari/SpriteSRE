@@ -68,6 +68,28 @@ Milestones:
 - 2.2 Failure extraction: identify failed workflow and failed jobs; store incident (in-memory initially)
 - 2.3 Incident lifecycle: basic state machine (Detected → Queued → Diagnosing → Patch Generated → Testing → PR Created → Resolved)
 
+GitHub
+  │
+  │ workflow_run webhook
+  ▼
+router.py
+  │
+  ├── get raw body
+  ├── verify signature
+  ├── parse JSON
+  └── get X-GitHub-Event
+          │
+          ▼
+      parser.py
+          │
+          ├── workflow_run?
+          ├── completed?
+          └── failure?
+                 │
+                 ▼
+             Incident
+
+
 ## Phase 3 — Persistence Layer
 Objective: Persist repositories, workflows, runs, jobs, and incidents.
 

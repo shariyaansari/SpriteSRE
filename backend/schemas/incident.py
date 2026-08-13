@@ -13,8 +13,10 @@
 # Azure DevOps
 
 # Having your own UUID means every incident is uniquely identifiable regardless of the source.
-
+from uuid import UUID
 from pydantic import BaseModel, Field
+
+from backend.models.status import IncidentStatus 
 
 class Incident(BaseModel):
     id : UUID = Field(..., description="Unique identifier for the incident")   #Internal SpriteSRE identifier (don't depend on GitHub IDs)

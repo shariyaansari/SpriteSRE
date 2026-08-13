@@ -1,9 +1,9 @@
 # GitHubClient sdk 
 
 import httpx
-from config import settings
-from schemas.repository import Repository
-from schemas.file import File
+from backend.config import settings
+from backend.schemas.repository import Repository
+from backend.schemas.file import File
 
 
 
