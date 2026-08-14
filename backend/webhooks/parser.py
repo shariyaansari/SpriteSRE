@@ -10,8 +10,8 @@
 
 from uuid import uuid4
 
-from backend.models.incident import Incident
-from backend.models.status import IncidentStatus
+from backend.schemas.incident import Incident
+from backend.schemas.status import IncidentStatus
 
 
 def parse_workflow_run(event: str, payload: dict) -> Incident | None:

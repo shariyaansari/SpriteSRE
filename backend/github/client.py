@@ -4,6 +4,7 @@ import httpx
 from backend.config import settings
 from backend.schemas.repository import Repository
 from backend.schemas.file import File
+from backend.schemas.workflow import Workflow
 
 
 

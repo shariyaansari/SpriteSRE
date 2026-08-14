@@ -138,3 +138,41 @@ So NOW the architechture becomes ->
     Create Incident
 
 ```
+
+### Phase 3 - Asynchronous Processing 
+So basically, Recieving and incident and actually processing it are two different things 
+-> so Seperate both
+
+
+```
+                 GitHub
+                    │
+                    ▼
+             Webhook Endpoint
+                    │
+                    ▼
+              Create Incident
+                    │
+                    ▼
+                  Queue
+                    │
+             ┌──────┴──────┐
+             ▼             ▼
+          Worker 1       Worker 2
+             │             │
+             └──────┬──────┘
+                    ▼
+              Process Incident
+```
+
+So Instead of  -> 
+Github -> webhook -> Diagnose -> generate Patch -> Test -> 200 Ok 
+
+we want -> github -> webhook -> Validate the webhook -> Create Incident -> Put Incident in the queue -> 200 ok Immediately
+
+Then independently, 
+Queue
+  ↓
+Worker
+  ↓
+Process Incident 

@@ -29,3 +29,6 @@ class IncidentStatus(str, Enum):
     PR_CREATED = "PR_CREATED"
     RESOLVED = "RESOLVED"
     FAILED = "FAILED"
+
+# Backward-compatible alias for older imports that expected a `status` symbol.
+status = IncidentStatus
