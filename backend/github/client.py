@@ -120,9 +120,27 @@ class GitHubClient:
             for step in job.get("steps", [])
             if step.get("conclusion") == "failure"
         ]
+        
+        
     
+    # GitHub's job-logs endpoint (GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs) doesn't return JSON — it returns a 302 redirect to a plain-text log file. That means it can't go through whatever __request() you're using for JSON endpoints (get_jobs, get_repository, etc.) without a code path that (a) follows the redirect and (b) doesn't try to .json() the response. So this needs its own request path. 
     
+    def get_job_logs(self, owner: str, repo: str, job_id: int) -> str:
+        """
+        Fetch raw log text for a single job.
+        GitHub's logs endpoint redirects to a plain-text file — not JSON —
+        so this bypasses __request() and hits httpx directly.
+        """
+        url = f"{self.base_url}/repos/{owner}/{repo}/actions/jobs/{job_id}/logs"
 
+        async with httpx.AsyncClient(follow_redirects=True) as http_client:
+            response = await http_client.get(url, headers=self.headers)
+            response.raise_for_status()
+            return response.text
+    
+        
+
+    
     async def get_contents(self, owner: str, repo: str, path: str) -> File:
         """
         Get the contents of a file in a repository.
