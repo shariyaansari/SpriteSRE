@@ -120,6 +120,8 @@ class GitHubClient:
             for step in job.get("steps", [])
             if step.get("conclusion") == "failure"
         ]
+    
+    
 
     async def get_contents(self, owner: str, repo: str, path: str) -> File:
         """

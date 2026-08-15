@@ -176,3 +176,48 @@ Queue
 Worker
   ↓
 Process Incident 
+
+### Phase 4 - failed jobs 
+Now, we are done with creating a queue that handles all the processing and everything of the incident, we used singleton method to have the access to the same queue in the whole proj 
+
+next step is to get the jobs-> extract failed from those -> then get the steps of those failed jobsm-> then move to logs to understand further abt the situation 
+
+``` 
+run_id
+  ↓
+get_jobs()
+  ↓
+all jobs
+  ↓
+get_failed_jobs()
+  ↓
+failed job
+  ↓
+get_failed_steps()
+  ↓
+failed step
+```
+
+After doing this 
+
+#### GET LOGS
+
+```
+run_id
+   ↓
+get_jobs()
+   ↓
+failed job
+   ↓
+failed step
+   ↓
+get_logs()
+   ↓
+raw log output
+```
+
+This is how we will extract failure reasons 
+
+
+
+

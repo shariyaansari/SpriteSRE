@@ -19,14 +19,15 @@ from pydantic import BaseModel, Field
 from backend.schemas.status import IncidentStatus 
 
 class Incident(BaseModel):
-    id : UUID = Field(..., description="Unique identifier for the incident")   #Internal SpriteSRE identifier (don't depend on GitHub IDs)
+    id: UUID = Field(..., description="Unique identifier for the incident")
     source: str = Field(..., description="Source of the incident (e.g., 'GitHub', 'GitLab', 'Azure DevOps')")
     repository: str = Field(..., description="GitHub repository associated with the incident")
     workflow_name: str = Field(..., description="Name of the GitHub Actions workflow associated with the incident")
     run_id: int = Field(..., description="GitHub Actions run ID associated with the incident")
-    status: IncidentStatus = Field(..., description="Status of the incident (e.g., 'Detected', 'queued', 'diagnosing', 'patch_generated', 'testing', 'pr_created', 'resolved')")
-    failure_reason: str = Field(..., description="Reason for the failure of the workflow run")
+    status: IncidentStatus = Field(..., description="Status of the incident")
+    failure_reason: str | None = Field(default=None, description="Reason for the failure of the workflow run")
     created_at: str = Field(..., description="Timestamp when the incident was created")
+    attempts: int = Field(default=0, description="Number of processing attempts made so far")
     
 
 # Status of the incident can be one of the following:

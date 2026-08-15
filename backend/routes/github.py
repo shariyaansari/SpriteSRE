@@ -44,3 +44,10 @@ async def get_workflows(owner: str, repo: str):
         return await github_client.get_workflows(owner, repo)
     except HTTPStatusError as exc:
         _raise_github_http_exception(exc, "workflows")
+        
+@router.get("/get_jobs")
+async def get_jobs(owner: str, repo: str, run_id: int):
+    try:
+        return await github_client.get_jobs(owner, repo, run_id)
+    except HTTPStatusError as exc:
+        _raise_github_http_exception(exc, "jobs")
