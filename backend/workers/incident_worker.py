@@ -16,12 +16,59 @@ import asyncio
 from backend.schemas.incident import Incident
 from backend.schemas.status import IncidentStatus
 from backend.queue.incident_queue import dequeue_incident, enqueue_incident, incident_queue
+from backend.github.client import GitHubClient
 
 logger = logging.getLogger("spritesre.worker")
 
 MAX_RETRIES = 3  # Maximum number of times to retry processing an incident before giving up.
 BASE_BACKOFF_SECONDS = 2  # Base backoff time in seconds for exponential backoff.
 
+github_client = GitHubClient()  # Initialize the GitHub client once for the worker.
+
+async def enrich_wit_failure_reason(incident:Incident) -> None:
+    """
+    Phase 4.3 — fetch and attach the failure_reason for an incident
+    by inspecting the failed job's logs on GitHub.
+    """
+    if "/" not in incident.repository:
+        logger.warning(
+            "Incident %s has invalid repository format: %s",
+            incident.id,
+            incident.repository,
+        )
+        return 
+    owner, repo = incident.repository.split("/", 1)
+    failure_reason = await github_client.get_failure_reason(
+        owner = owner, 
+        repo = repo, 
+        run_id = incident.run_id
+        )
+    if not failure_reason:
+        logger.warning(
+            "Incident %s has no failure reason (no failed job/step found)",
+            incident.id
+        )
+    incident.failure_reason = failure_reason
+
+
+async def diagnose_incident(incident: Incident) -> None:
+    """
+    Phase 4.4 — analyze the failure.
+    Placeholder for now; Phase 5 will replace this with real AI diagnosis
+    (Gemini primary, GPT-4o / Claude fallback).
+    """
+    if incident.failure_reason is None:
+        logger.warning(
+            "Incident %s has no failure reason available for diagnosis",
+            incident.id
+        )
+        return
+    logger.info(
+        "Diagnosing incident %s with failure reason: %s",
+        incident.id,
+        incident.failure_reason
+    )
+    # TODO: Real AI diagnosis logic goes here in Phase 5.
 
 async def process_incident(incident: Incident) -> None:
     """
@@ -37,9 +84,10 @@ async def process_incident(incident: Incident) -> None:
         incident.run_id,
     )
 
-    # Temporary state transition for testing.
-    # We will replace this with the real lifecycle later.
-    # incident.status = IncidentStatus.DIAGNOSING
+    incident.status = IncidentStatus.DIAGNOSING
+    await enrich_wit_failure_reason(incident)
+    await diagnose_incident(incident)
+
 
 async def _retry_after_delay(incident: Incident, delay: float, attempt: int) -> None:
     """
@@ -56,16 +104,6 @@ async def _retry_after_delay(incident: Incident, delay: float, attempt: int) -> 
     await asyncio.sleep(delay)
     incident.status = IncidentStatus.QUEUED
     await enqueue_incident(incident)
-
-async def process_incident(incident: Incident) -> None:
-    incident.status = IncidentStatus.DIAGNOSING
-
-    logger.info(
-        "Processing incident %s (attempt test)",
-        incident.id,
-    )
-
-    raise Exception("Intentional test failure")
 
 async def run_incident_worker() -> None:
     """

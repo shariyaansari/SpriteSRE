@@ -125,21 +125,59 @@ class GitHubClient:
     
     # GitHub's job-logs endpoint (GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs) doesn't return JSON — it returns a 302 redirect to a plain-text log file. That means it can't go through whatever __request() you're using for JSON endpoints (get_jobs, get_repository, etc.) without a code path that (a) follows the redirect and (b) doesn't try to .json() the response. So this needs its own request path. 
     
-    def get_job_logs(self, owner: str, repo: str, job_id: int) -> str:
+    async def get_job_logs(self, owner: str, repo: str, job_id: int) -> str:
         """
         Fetch raw log text for a single job.
         GitHub's logs endpoint redirects to a plain-text file — not JSON —
         so this bypasses __request() and hits httpx directly.
         """
-        url = f"{self.base_url}/repos/{owner}/{repo}/actions/jobs/{job_id}/logs"
-
-        async with httpx.AsyncClient(follow_redirects=True) as http_client:
-            response = await http_client.get(url, headers=self.headers)
-            response.raise_for_status()
-            return response.text
+        url = f"repos/{owner}/{repo}/actions/jobs/{job_id}/logs"
+        response = await self.client.get(url, follow_redirects=True)
+        response.raise_for_status()
+        return response.text
     
-        
+    # Raw logs are huge (thousands of lines, timestamps, ANSI codes, setup/teardown noise). We don't want to dump all of that into failure_reason — it needs actual signal extraction. GitHub Actions has a convention: any line it considers an "annotated error" gets prefixed with ##[error] in the raw log. That's the highest-signal thing to grep for.
+    
+    def extract_error_lines(self, log_text:str, max_lines: int = 20) -> str:
+        """
+        Pull the most relevant error output from a raw job log.
+        Prefers GitHub Actions' '##[error]' annotations; falls back to the
+        tail of the log if no explicit annotation is present.
+        """
+        lines = log_text.splitlines()
+        error_lines = [line for line in lines if "##[error]" in line]
 
+        if not error_lines:
+            error_lines = lines[-max_lines:]
+
+        return "\n".join(error_lines[:max_lines]).strip()
+
+    async def get_failure_reason(self, owner: str, repo: str, run_id: int) -> str | None:
+        """
+        Orchestrates 4.1 + 4.2: locate the failed job/step and extract a
+        concise failure_reason from its logs.
+
+        Returns None if there's no failed job to analyze.
+        """
+        jobs = await self.get_jobs(owner, repo, run_id)
+        failed_jobs = self.get_failed_jobs(jobs)
+
+        if not failed_jobs:
+            return None
+
+        # For now: take the first failed job as the "primary" one.
+        # (Multi-job failure handling is a decision to revisit later.)
+        primary_job = failed_jobs[0]
+        failed_steps = self.get_failed_steps(primary_job)
+
+        log_text = await self.get_job_logs(owner, repo, primary_job["id"])
+        error_summary = self.extract_error_lines(log_text)
+
+        step_name = failed_steps[0]["name"] if failed_steps else "unknown step"
+
+        return f"Job '{primary_job['name']}' failed at step '{step_name}':\n{error_summary}"
+
+    
     
     async def get_contents(self, owner: str, repo: str, path: str) -> File:
         """

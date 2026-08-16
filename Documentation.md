@@ -218,6 +218,31 @@ raw log output
 
 This is how we will extract failure reasons 
 
+After phase 4 
+```
+Incident.run_id
+      ↓
+get_jobs()
+      ↓
+all jobs
+      ↓
+get_failed_jobs()
+      ↓
+failed job
+      ↓
+get_failed_steps()
+      ↓
+failed step
+      ↓
+get_job_logs()
+      ↓
+raw log
+      ↓
+extract_error_lines()
+      ↓
+failure_reason
+```
+
 
 
 
