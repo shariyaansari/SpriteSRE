@@ -121,8 +121,6 @@ class GitHubClient:
             if step.get("conclusion") == "failure"
         ]
         
-        
-    
     # GitHub's job-logs endpoint (GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs) doesn't return JSON — it returns a 302 redirect to a plain-text log file. That means it can't go through whatever __request() you're using for JSON endpoints (get_jobs, get_repository, etc.) without a code path that (a) follows the redirect and (b) doesn't try to .json() the response. So this needs its own request path. 
     
     async def get_job_logs(self, owner: str, repo: str, job_id: int) -> str:
@@ -156,7 +154,6 @@ class GitHubClient:
         """
         Orchestrates 4.1 + 4.2: locate the failed job/step and extract a
         concise failure_reason from its logs.
-
         Returns None if there's no failed job to analyze.
         """
         jobs = await self.get_jobs(owner, repo, run_id)
