@@ -115,6 +115,33 @@ Milestones:
 - 5.2 Repository context builder (read workflow YAML, package.json, Dockerfile, requirements)
 - 5.3 Integrate LLM provider (e.g., Gemini or chosen model)
 - 5.4 Structured JSON output: root cause, confidence, affected files, suggested fix, explanation
+```
+Incident
+   │
+   ▼
+Failure evidence
+   │
+   ▼
+Signal extraction
+   │
+   ├── known signals ──────┐
+   │                       │
+   └── no/weak signals     │
+           │               │
+           └──────┬────────┘
+                  ▼
+             LLM Adapter
+                  │
+                  ▼
+             Diagnosis
+                  │
+                  ▼
+             Validation
+                  │
+                  ▼
+         Structured Diagnosis
+```
+
 
 ## Phase 6 — RAG Memory
 Objective: Store past failures and fixes to improve diagnostics.

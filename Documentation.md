@@ -243,6 +243,96 @@ extract_error_lines()
 failure_reason
 ```
 
+### PHASE 5 -> AI diagnosis 
+
+In this phase, 
+we are deciding what should AI return ? 
+Should I directly ask the model what's wrong ? or should I give it to return a structured response by category, root cause and exp? 
+the second option seems more feasible -> as the response is structured 
+
+#### Diagnosis Architechture ? 
+
+should be something like -> failed pipeline -> reason -> LLM -> response 
+
+But it's kinda better to keep a fallback, so we have two options now 
+
+1. directly go to LLM and follow below arch 
+```
+      failure_reason
+                    ↓
+              Primary LLM
+               /       \
+           success     failure
+             ↓           ↓
+        diagnosis    Fallback LLM
+```
+
+2. OR First apply the rules -> then go for LLM 
+```
+failure_reason
+      ↓
+Rule engine
+      ↓
+Known failure?
+   /       \
+ yes        no
+ ↓          ↓
+diagnosis   LLM
+```
+### OBVIOUSLY SECOND ONE IS MORE FEASIBLE -> CAUSE EVERY TIME WE CALL llm -> IT'S SENDING THE rRQUEST FOR llM -> FOR DETERMINISTIC FAILURES WE DON'T NEED LLM CALLS !!!!!!!!
+###  drawback - > not keeping a fallback 
+## how abt I mix both of them and do a hybrid of both !!
+
+so now our phase 5 arch looks like this 
+```
+                failure_reason
+                       ↓
+                 Rule engine
+                  /       \
+             recognized   unknown
+                ↓           ↓
+          deterministic     LLM
+                \           /
+                 structured
+                  diagnosis
+```
 
 
+### FINAL P5 arch 
+```
+                    failure_reason
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │ Rule Engine   │
+                  └───────┬───────┘
+                          │
+                 ┌────────┴────────┐
+                 │                 │
+             Recognized         Unknown
+                 │                 │
+                 ▼                 ▼
+          Rule Diagnosis      Free LLM
+                 │                 │
+                 └────────┬────────┘
+                          ▼
+                    Diagnosis
+``` 
 
+### Building the rule engine 
+rule engine deals with deterministic patters 
+
+eg.
+```
+exit code 127      → COMMAND_NOT_FOUND
+exit code 1        → GENERIC_COMMAND_FAILURE
+ModuleNotFoundError → MISSING_DEPENDENCY
+SyntaxError        → SYNTAX_ERROR
+permission denied  → PERMISSION_ERROR
+```
+then the LLM fallback 
+
+#### Signal Extraction Engine
+What is a Signal ? 
+A signal is a small piece of evidence that strongly suggests something about the failure.
+##### We are NOT saying this is the final diagnosis. We're saying: "Hey, this log contains strong evidence of a command-not-found situation."

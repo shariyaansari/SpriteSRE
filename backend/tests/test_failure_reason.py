@@ -9,7 +9,7 @@ async def main():
     failure_reason = await client.get_failure_reason(
         owner="shariyaansari",
         repo="SpriteSRE",
-        run_id=YOUR_RUN_ID,
+        run_id=33200666888,
     )
 
     print("\n===== FAILURE REASON =====")
