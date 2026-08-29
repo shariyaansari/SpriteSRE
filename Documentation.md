@@ -336,3 +336,67 @@ then the LLM fallback
 What is a Signal ? 
 A signal is a small piece of evidence that strongly suggests something about the failure.
 ##### We are NOT saying this is the final diagnosis. We're saying: "Hey, this log contains strong evidence of a command-not-found situation."
+
+## PHASE 6 
+This is where, 
+we have the errors, the reasons, the steps -> now here we have to think how to apply the PATCH
+#### Here we will think of -> "What code change could fix it?"
+
+So our pipeline chnages to 
+```
+Incident
+   ↓
+Failure Reason
+   ↓
+Diagnosis
+   ↓
+Patch Generation
+   ↓
+Proposed Code Change
+```
+But wait !
+What should it return ? 
+1. Return raw LLM text
+2. Return a structured patch (better than raw LLM)
+3. Generate a Git diff (better than the above 2)
+4. maybe combine 2 and 3 
+
+choosing both stuctured patch and then generating a git diff 
+
+### Phase 6 architechture
+```
+Incident
+                      Diagnosis
+                       │
+                       ▼
+                Patch Generator
+                      (LLM)
+                       │
+                       ▼
+                Targeted Edit
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+         file_path          edit operation
+                               │
+                         find → replace
+                               │
+                               ▼
+                     Patch Validator
+                               │
+                               ▼
+                    Apply edit ourselves
+                               │
+                               ▼
+                     Original Content
+                               │
+                               ▼
+                     Modified Content
+                               │
+                               ▼
+                       Diff Generator
+                               │
+                               ▼
+                          Git Diff
+```
+
