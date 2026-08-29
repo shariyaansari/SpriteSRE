@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     github_api_url: str
     github_token: str
     github_webhook_secret: str = ""
+    gemini_api_key: str
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parent / ".env",

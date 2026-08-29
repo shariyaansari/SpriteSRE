@@ -1,20 +1,25 @@
 from pydantic import BaseModel, Field
-
-
-class FailureSignal(BaseModel):
-    name: str = Field(
+ 
+ 
+class Signal(BaseModel):
+    """
+    A signal is evidence of a specific failure pattern.
+    
+    It is NOT a diagnosis — it's the raw pattern match.
+    
+    Example:
+        type = "COMMAND_NOT_FOUND"
+        evidence = "##[error] command not found: pytest"
+    
+    The signal says: "I found exit code 127."
+    The diagnosis says: "The command is missing from PATH."
+    """
+ 
+    type: str = Field(
         ...,
-        description="Identifier for the detected failure pattern.",
+        description="The signal type (e.g., COMMAND_NOT_FOUND, MISSING_DEPENDENCY)",
     )
-
     evidence: str = Field(
         ...,
-        description="The exact piece of failure output that supports the signal.",
-    )
-
-    confidence: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Confidence that the observed evidence matches this signal.",
+        description="The actual log line or excerpt supporting this signal.",
     )
