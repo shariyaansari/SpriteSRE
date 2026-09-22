@@ -1,6 +1,7 @@
 # GitHubClient sdk
 
 import httpx
+import base64
 from backend.config import settings
 from backend.schemas.repository import Repository
 from backend.schemas.file import File
@@ -38,7 +39,7 @@ class GitHubClient:
             ),  # * for optional fields, use .get() to avoid KeyError, or a brand new repo may not have a description yet
             owner=data["owner"][
                 "login"
-            ],  # !  # Nested GitHub JSON → flat SpriteSRE field
+            ],  # !   Nested GitHub JSON → flat SpriteSRE field
             private=data["private"],
             visibility=data["visibility"],
             default_branch=data["default_branch"],
@@ -51,6 +52,18 @@ class GitHubClient:
         return repository
 
     def __map_repository_file(self, data: dict) -> File:
+        content = data.get("content")
+        encoding = data.get("encoding")
+
+        if content and encoding == "base64":
+            try:
+                # GitHub's base64 might have newlines, b64decode handles it
+                content = base64.b64decode(content).decode("utf-8")
+                encoding = "utf-8"
+            except UnicodeDecodeError:
+                # If it's a binary file, keep the base64 string
+                pass
+
         return File(
             name=data["name"],
             path=data["path"],
@@ -61,8 +74,8 @@ class GitHubClient:
             git_url=data["git_url"],
             download_url=data.get("download_url"),
             type=data["type"],
-            content=data.get("content"),
-            encoding=data.get("encoding"),
+            content=content,
+            encoding=encoding,
         )
 
     def __map_workflow(self, data) -> Workflow:
@@ -183,6 +196,19 @@ class GitHubClient:
         url = f"repos/{owner}/{repo}/contents/{path}"
         data = await self.__request("GET", url)
         return self.__map_repository_file(data)
+
+    async def get_directory_contents(self, owner: str, repo: str, path: str) -> list[File]:
+        """
+        Get the directory listing of a path in a repository.
+        Returns a list of files/directories.
+        """
+        url_path = f"contents/{path}" if path else "contents"
+        url = f"repos/{owner}/{repo}/{url_path}"
+        data = await self.__request("GET", url)
+        if isinstance(data, list):
+            return [self.__map_repository_file(item) for item in data]
+        else:
+            raise ValueError(f"Path '{path}' is not a directory.")
 
     async def get_workflows(self, owner: str, repo: str) -> list[Workflow]:
         """

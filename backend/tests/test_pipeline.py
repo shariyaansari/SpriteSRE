@@ -273,6 +273,43 @@ class TestGeminiAdapterParsing:
         assert diagnosis == expected
         llm.diagnose.assert_awaited_once()
 
+    @pytest.mark.asyncio
+    async def test_pipeline_passes_files_to_llm(self):
+        """Test that repository context files are passed to the LLM adapter."""
+        from backend.schemas.file import File
+        
+        expected = Diagnosis(
+            category="UNKNOWN",
+            root_cause="Test",
+            explanation="Test",
+            suggested_fix="Test",
+            confidence=0.5
+        )
+        llm = AsyncMock()
+        llm.diagnose.return_value = expected
+        
+        pipeline = DiagnosisPipeline(llm_adapter=llm)
+        
+        test_files = [
+            File(
+                name="test.py",
+                path="test.py",
+                sha="dummy", url="dummy", html_url="dummy", git_url="dummy", type="file",
+                content="print('hello')", 
+                size=15, 
+                encoding="utf-8"
+            )
+        ]
+        
+        await pipeline.diagnose("Some error", files=test_files)
+        
+        # Verify the LLM was called with the files
+        llm.diagnose.assert_awaited_once()
+        _, kwargs = llm.diagnose.call_args
+        
+        # files could be passed as positional or kwarg, let's check both
+        assert kwargs.get("files") == test_files
+
 # Example usage (manual testing):
 if __name__ == "__main__":
     print("Run tests with: pytest backend/diagnosis/test_pipeline.py -v")

@@ -15,7 +15,8 @@ from backend.diagnosis.llm_adapter import LLMAdapter
 from backend.diagnosis.rule_diagnoser import RuleDiagnoser
 from backend.diagnosis.signal_extractor import SignalExtractor
 from backend.schemas.diagnosis import Diagnosis
-from backend.config import Settings
+from backend.schemas.file import File
+from backend.schemas.signal import Signal
 
 
 
@@ -35,12 +36,17 @@ class DiagnosisPipeline:
         self.rule_diagnoser = RuleDiagnoser()
         self.llm_adapter = llm_adapter or GeminiAdapter()
 
-    async def diagnose(self, failure_reason: str) -> Diagnosis:
+    async def diagnose(
+        self, 
+        failure_reason: str, 
+        signals: list[Signal] | None = None, 
+        files: list[File] | None = None
+    ) -> Diagnosis:
         """
         Diagnose a CI/CD failure.
 
         Flow:
-        1. Extract all signals.
+        1. Extract all signals (if not provided).
         2. Try deterministic diagnosis for each signal.
         3. Return the first strong rule-based diagnosis.
         4. If none are strong enough, use the LLM.
@@ -57,9 +63,10 @@ class DiagnosisPipeline:
         )
 
         # 1. Extract signals.
-        signals = self.extractor.extract(
-            failure_reason
-        )
+        if signals is None:
+            signals = self.extractor.extract(
+                failure_reason
+            )
 
         logger.debug(
             "Extracted %d signal(s): %s",
@@ -94,6 +101,7 @@ class DiagnosisPipeline:
             llm_diagnosis = await self.llm_adapter.diagnose(
                 failure_reason,
                 signals,
+                files=files
             )
 
             logger.info(

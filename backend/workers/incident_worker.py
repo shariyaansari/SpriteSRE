@@ -22,6 +22,8 @@ from backend.queue.incident_queue import (
 )
 from backend.github.client import GitHubClient
 from backend.diagnosis.pipeline import DiagnosisPipeline
+from backend.diagnosis.context_builder import RepositoryContextBuilder
+from backend.diagnosis.signal_extractor import SignalExtractor
 
 
 logger = logging.getLogger("spritesre.worker")
@@ -30,6 +32,7 @@ MAX_RETRIES = 3
 BASE_BACKOFF_SECONDS = 2
 
 github_client = GitHubClient()
+signal_extractor = SignalExtractor()
 diagnosis_pipeline = DiagnosisPipeline()
 
 async def enrich_with_failure_reason(incident: Incident) -> None:
@@ -77,9 +80,24 @@ async def diagnose_incident(incident: Incident) -> None:
             incident.id,
         )
         return
+        
+    owner, repo = incident.repository.split("/", 1)
+    context_builder = RepositoryContextBuilder(github_client)
+    
+    # Extract signals early so both context builder and pipeline can use them
+    signals = signal_extractor.extract(incident.failure_reason)
+    
+    context_files = await context_builder.build_context(
+        owner=owner,
+        repo=repo,
+        failure_reason=incident.failure_reason,
+        signals=signals
+    )
 
     diagnosis = await diagnosis_pipeline.diagnose(
-        incident.failure_reason
+        incident.failure_reason,
+        signals=signals,
+        files=context_files
     )
 
     incident.diagnosis = diagnosis

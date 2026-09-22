@@ -8,13 +8,13 @@ When rate-limited, fall back to local Ollama (see ollama_adapter.py).
 """
 
 import json
-import os
 
 import httpx
 
 from backend.diagnosis.llm_adapter import LLMAdapter
 from backend.schemas.diagnosis import Diagnosis
 from backend.schemas.signal import Signal
+from backend.schemas.file import File
 from backend.config import settings
 
 
@@ -42,6 +42,7 @@ class GeminiAdapter(LLMAdapter):
         self,
         failure_reason: str,
         signals: list[Signal] | None = None,
+        files: list[File] | None = None,
     ) -> Diagnosis:
         """
         Call Gemini API to diagnose a failure.
@@ -49,6 +50,7 @@ class GeminiAdapter(LLMAdapter):
         Args:
             failure_reason: Raw error text from CI/CD logs
             signals: Optional list of Signal objects to hint at the problem
+            files: Optional list of repository context files
         
         Returns:
             A Diagnosis with all fields validated
@@ -57,7 +59,7 @@ class GeminiAdapter(LLMAdapter):
             ValueError: If the response doesn't contain valid JSON
             httpx.HTTPError: If the API call fails
         """
-        prompt = self._build_prompt(failure_reason, signals)
+        prompt = self._build_prompt(failure_reason, signals, files)
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -84,34 +86,43 @@ class GeminiAdapter(LLMAdapter):
         
         return self._parse_diagnosis(text)
 
-    def _build_prompt(self, failure_reason: str, signals: list[Signal] | None) -> str:
+    def _build_prompt(self, failure_reason: str, signals: list[Signal] | None, files: list[File] | None) -> str:
         """
         Build a structured prompt for Gemini.
         
         Asks for JSON output to make parsing deterministic.
         Hints at signals if provided.
+        Includes repository context files if provided.
         """
-        signal_hint = ""
+        signal_section = ""
         if signals:
-            signal_types = ", ".join(s.type for s in signals)
-            signal_hint = f"\n\nThe rule engine detected possible signal types: {signal_types}. Use these as hints, but feel free to override if the logs suggest otherwise."
+            signal_lines = "\n".join(
+                f"- {s.type}: {s.evidence}"
+                for s in signals
+            )
+            signal_section = f"\n\nDETECTED SIGNALS:\n{signal_lines}"
         
+        context_section = ""
+        if files:
+            context_section = "\n\nREPOSITORY CONTEXT:\n"
+            for f in files:
+                context_section += f"\n--- {f.path} ---\n{f.content}\n"
+
         return f"""You are a CI/CD failure diagnostic assistant. Analyze the following workflow failure and return a structured diagnosis as JSON.
 
-        FAILURE LOGS:
-        {failure_reason}
-        {signal_hint}
+FAILURE LOGS:
+{failure_reason}{signal_section}{context_section}
 
-        Return ONLY a JSON object (no markdown, no preamble) with these exact fields:
-        {{
-        "category": "The failure category (e.g., COMMAND_NOT_FOUND, MISSING_DEPENDENCY)",
-        "root_cause": "One sentence explaining why this failure occurred",
-        "explanation": "Detailed explanation referencing specific evidence from the logs",
-        "suggested_fix": "Actionable next step to resolve or debug the failure",
-        "confidence": 0.85
-        }}
+Return ONLY a JSON object (no markdown, no preamble) with these exact fields:
+{{
+  "category": "The failure category (e.g., COMMAND_NOT_FOUND, MISSING_DEPENDENCY)",
+  "root_cause": "One sentence explaining why this failure occurred",
+  "explanation": "Detailed explanation referencing specific evidence from the logs",
+  "suggested_fix": "Actionable next step to resolve or debug the failure",
+  "confidence": 0.85
+}}
 
-        Be concise. Confidence should be 0.0–1.0, reflecting how sure you are."""
+Be concise. Confidence should be 0.0–1.0, reflecting how sure you are."""
 
     def _parse_diagnosis(self, response_text: str) -> Diagnosis:
         """

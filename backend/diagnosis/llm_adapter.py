@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 
 from backend.schemas.diagnosis import Diagnosis
 from backend.schemas.signal import Signal
+from backend.schemas.file import File
 
 
 class LLMAdapter(ABC):
@@ -22,7 +23,7 @@ class LLMAdapter(ABC):
     the response as a Diagnosis object.
     
     Subclasses must implement:
-    - diagnose(failure_reason, signals)
+    - diagnose(failure_reason, signals, context)
     
     The adapter is responsible for:
     - Crafting the prompt
@@ -37,6 +38,7 @@ class LLMAdapter(ABC):
         self,
         failure_reason: str,
         signals: list[Signal] | None = None,
+        files: list[File] | None = None,
     ) -> Diagnosis:
         """
         Diagnose a CI/CD failure using the LLM.
@@ -45,6 +47,7 @@ class LLMAdapter(ABC):
             failure_reason: Raw error text from CI/CD logs
             signals: Optional list of signals from the rule engine.
                      If provided, the LLM can use them as hints.
+            files: Optional list of repository context files.
         
         Returns:
             A Diagnosis object with all fields populated and validated.

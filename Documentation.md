@@ -400,3 +400,92 @@ Incident
                           Git Diff
 ```
 
+### Phase 5.2 incomplete -> no repo context given 
+
+currently my code does the following instead of the gemini adapter reading my repo context, it only reads my failed reason and diagnose it 
+
+CURRENT
+```
+GitHub webhook
+      ↓
+Incident
+      ↓
+get_failure_reason()
+      ↓
+failure_reason
+      ↓
+DiagnosisPipeline
+      ↓
+SignalExtractor
+      ↓
+RuleDiagnoser
+      ↓
+GeminiAdapter
+      ↓
+Diagnosis
+```
+
+And your GeminiAdapter prompt currently receives:
+
+FAILURE LOGS
+signals
+
+It does not receive repository context.
+
+Incident
+   │
+   ├── failure_reason
+   │
+   └── repository
+          │
+          ▼
+   RepositoryContextBuilder
+          │
+          ▼
+   relevant File objects
+          │
+          ▼
+   DiagnosisPipeline
+          │
+          ├── SignalExtractor
+          ├── RuleDiagnoser
+          │
+          └── GeminiAdapter
+                    │
+                    ├── failure_reason
+                    ├── signals
+                    └── repository context
+                              ↓
+                         Diagnosis
+
+
+## To do this thing 
+I am going to follow this structure 
+Start with a small set of high-value files, then use the failure/signals to select additional files.
+```
+             Incident
+                 │
+                 ├── failure_reason
+                 │
+                 ▼
+      ┌──────────────────────┐
+      │ Repository Context   │
+      │      Builder         │
+      └──────────┬───────────┘
+                 │
+        ┌────────┴─────────┐
+        │                  │
+   Baseline files     Failure-specific
+        │                  │
+        └────────┬─────────┘
+                 ▼
+          Relevant Files
+                 │
+                 ▼
+        Diagnosis Pipeline
+                 │
+                 ▼
+          GeminiAdapter
+```
+
+This is more flexible but introduces more logic.
